@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RoboTaxi Mobile Terminal</title>
+    <style>
+        /* Premium Mobile-First Dark Theme */
+        :root { 
+            --bg-dark: #090D16; 
+            --card-bg: #131924; 
+            --accent: #2563EB; 
+            --accent-glow: rgba(37, 99, 235, 0.4);
+            --success: #059669;
+            --danger: #DC2626;
+            --text-main: #FFFFFF;
+            --text-sub: #9CA3AF;
+            --border: #222A3A;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 12px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            overflow: hidden; /* Prevents whole-page bouncing/scrolling */
+        }
+        
+        /* Rigid Mobile App Frame */
+        .app-container { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border); 
+            border-radius: 28px; 
+            padding: 20px; 
+            width: 100%; 
+            max-width: 410px; 
+            height: 92vh; 
+            max-height: 780px;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6); 
+            overflow: hidden;
+        }
+        
+        .header { text-align: center; margin-bottom: 10px; }
+        h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-sub); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        
+        /* High-Visibility Status Banner */
+        .status-banner { 
+            padding: 14px; 
+            border-radius: 16px; 
+            font-weight: 700; 
+            font-size: 16px; 
+            text-align: center; 
+            background: rgba(255,255,255,0.04); 
+            border: 2px solid var(--border);
+            margin-bottom: 12px;
+        }
+        
+        /* Large Tap-Target Buttons */
+        .section-label { font-size: 12px; font-weight: 700; color: var(--text-sub); margin: 0 0 6px 4px; display: block; text-transform: uppercase; }
+        .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .station-btn { 
+            background: rgba(255,255,255,0.02); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 12px; 
+            font-size: 15px; 
+            font-weight: 700; 
+            color: var(--text-sub); 
+            cursor: pointer; 
+            transition: all 0.15s; 
+        }
+        .station-btn.selected { 
+            background: var(--accent); 
+            border-color: var(--accent); 
+            color: white; 
+            box-shadow: 0 0 12px var(--accent-glow); 
+        }
+        
+        /* Midsection Split: Map & Mini Cam Side-by-Side to Save Vertical Space */
+        .visual-row { 
+            display: grid; 
+            grid-template-columns: 1.2fr 1fr; 
+            gap: 12px; 
+            align-items: center;
+            background: rgba(0,0,0,0.15);
+            border-radius: 20px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        /* Fixed Dimensions Map Wrapper to stop expanding bug */
+        .map-wrapper { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+        .map-circle { 
+            width: 110px; 
+            height: 110px; 
+            border-radius: 50%; 
+            border: 3px solid var(--border); 
+            position: relative; 
+        }
+        .station-dot { position: absolute; width: 8px; height: 8px; background: var(--border); border-radius: 50%; transform: translate(-50%, -50%); }
+        .station-label { position: absolute; font-size: 11px; font-weight: 800; color: var(--text-sub); }
+        
+        #st-A { top: 0; left: 50%; } #lbl-A { top: -18px; left: 50%; transform: translateX(-50%);}
+        #st-B { top: 50%; left: 100%; } #lbl-B { top: 50%; left: calc(100% + 8px); transform: translateY(-50%);}
+        #st-C { top: 100%; left: 50%; } #lbl-C { top: calc(100% + 4px); left: 50%; transform: translateX(-50%);}
+        #st-D { top: 50%; left: 0; } #lbl-D { top: 50%; left: -16px; transform: translateY(-50%);}
+        
+        /* Orbiting Icon (Radius matches the half-width of map-circle) */
+        .car-icon { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            width: 22px; 
+            height: 22px; 
+            background: white; 
+            border-radius: 50%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 11px; 
+            box-shadow: 0 0 10px rgba(255,255,255,0.4); 
+            z-index: 10; 
+            transform-origin: center;
+        }
+        
+        /* Compact Camera Box */
+        .video-box { width: 100%; height: 130px; border-radius: 12px; overflow: hidden; background: #000; position: relative; border: 1px solid var(--border); }
+        .video-box img { width: 100%; height: 100%; object-fit: cover; }
+        .cam-overlay { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.75); color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* Massive Action Buttons */
+        .action-btn { 
+            width: 100%; 
+            padding: 20px; 
+            border-radius: 16px; 
+            border: none; 
+            font-size: 18px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn-call { background: var(--text-main); color: var(--bg-dark); }
+        .btn-start { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h2>Tber</h2>
+        <div class="subtitle">Team 11 concept demo</div>
+    </div>
+    
+    <div id="statusBadge" class="status-banner">Select Route</div>
+    
+    <div>
+        <span class="section-label">Pickup Location</span>
+        <div class="button-grid" id="pickupGrid">
+            <button class="station-btn selected" onclick="selectStation('pickup', 'Station A')">Station A</button>
+            <button class="station-btn" onclick="selectStation('pickup', 'Station B')">Station B</button>
+            <button class="station-btn" onclick="selectStation('pickup', 'Station C')">Station C</button>
+            <button class="station-btn" onclick="selectStation('pickup', 'Station D')">Station D</button>
+        </div>
+
+        <span class="section-label">Destination</span>
+        <div class="button-grid" id="dropoffGrid">
+            <button class="station-btn" onclick="selectStation('dropoff', 'Station A')">Station A</button>
+            <button class="station-btn selected" onclick="selectStation('dropoff', 'Station B')">Station B</button>
+            <button class="station-btn" onclick="selectStation('dropoff', 'Station C')">Station C</button>
+            <button class="station-btn" onclick="selectStation('dropoff', 'Station D')">Station D</button>
+        </div>
+    </div>
+
+    <div class="visual-row">
+        <div class="map-wrapper">
+            <div class="map-circle">
+                <div id="lbl-A" class="station-label">A</div><div id="st-A" class="station-dot"></div>
+                <div id="lbl-B" class="station-label">B</div><div id="st-B" class="station-dot"></div>
+                <div id="lbl-C" class="station-label">C</div><div id="st-C" class="station-dot"></div>
+                <div id="lbl-D" class="station-label">D</div><div id="st-D" class="station-dot"></div>
+                <div id="carIcon" class="car-icon">🚕</div>
+            </div>
+        </div>
+        <div class="video-box">
+            <img src="http://127.0.0.1:5001/video_feed" alt="Cam Offline">
+            <div id="camOverlay" class="cam-overlay">Connecting...</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 5px;">
+        <button id="callBtn" class="action-btn btn-call" onclick="sendCommand('call')">Call Taxi</button>
+        <button id="startBtn" class="action-btn btn-start" onclick="sendCommand('start')" style="display:none;">Start Ride</button>
+        <button id="stopBtn" class="action-btn btn-danger" onclick="sendCommand('emergency_stop')" style="display:none;">⚠️ Emergency Stop</button>
+        <button id="resumeBtn" class="action-btn btn-danger" onclick="sendCommand('resume')" style="display:none;">Resume Ride</button>
+    </div>
+</div>
+
+<script>
+    let selections = { pickup: 'Station A', dropoff: 'Station B' };
+    let loopCount = 0;
+    let lastProgress = 0;
+
+    function selectStation(type, station) {
+        selections[type] = station;
+        const grid = document.getElementById(type + 'Grid');
+        Array.from(grid.children).forEach(btn => btn.classList.remove('selected'));
+        event.target.classList.add('selected');
+    }
+
+    function sendCommand(cmd) {
+        if(cmd === 'call') {
+            fetch('/book_trip', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({pickup: selections.pickup, dropoff: selections.dropoff}) });
+        } else {
+            fetch('/action', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({command: cmd}) })
+            .then(r => r.json()).then(d => { if(!d.success) alert(d.msg); });
+        }
+    }
+
+    setInterval(() => {
+        fetch('/telemetry').then(r => r.json()).then(state => {
+            
+            // Handle continuous non-reverse loop math
+            if (state.progress < 20 && lastProgress > 80) { loopCount++; }
+            lastProgress = state.progress;
+            
+            const absoluteProgress = (loopCount * 100) + state.progress;
+            const angle = absoluteProgress * 3.6; 
+            // Radius translated out exactly -55px to align cleanly on the 110px circle border
+            document.getElementById('carIcon').style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-55px) rotate(-${angle}deg)`;
+
+            const badge = document.getElementById('statusBadge');
+            const camOverlay = document.getElementById('camOverlay');
+
+            // Toggle Primary Viewport Elements
+            document.getElementById('callBtn').style.display = (state.status === "Idle") ? "block" : "none";
+            document.getElementById('startBtn').style.display = (state.status === "Arrived at Pickup") ? "block" : "none";
+            document.getElementById('stopBtn').style.display = (state.status === "In Transit") ? "block" : "none";
+            document.getElementById('resumeBtn').style.display = (state.status === "Emergency Stop") ? "block" : "none";
+
+            // Status Styling
+            if(state.status === "Arrived at Pickup") {
+                badge.innerText = state.passenger_in_seat ? "Ready for Departure" : "Taxi Arrived. Please Board.";
+                badge.style.background = state.passenger_in_seat ? "rgba(5, 150, 105, 0.2)" : "rgba(255,255,255,0.04)";
+                badge.style.color = state.passenger_in_seat ? "var(--success)" : "var(--text-main)";
+                badge.style.borderColor = state.passenger_in_seat ? "var(--success)" : "var(--border)";
+            } 
+            else if(state.status === "Waiting for Disembark") {
+                badge.innerText = "Arrived. Please Exit.";
+                badge.style.background = "rgba(37, 99, 235, 0.2)"; 
+                badge.style.color = "var(--accent)";
+                badge.style.borderColor = "var(--accent)";
+            }
+            else if(state.status === "Emergency Stop") {
+                badge.innerText = "🚨 Emergency Stop Active";
+                badge.style.background = "rgba(220, 38, 38, 0.2)"; 
+                badge.style.color = "var(--danger)";
+                badge.style.borderColor = "var(--danger)";
+            }
+            else if(state.status === "In Transit") {
+                badge.innerText = "En Route...";
+                badge.style.background = "rgba(255,255,255,0.04)"; 
+                badge.style.color = "var(--text-main)";
+                badge.style.borderColor = "var(--border)";
+            }
+            else {
+                badge.innerText = "Select Route";
+                badge.style.background = "rgba(255,255,255,0.02)"; 
+                badge.style.color = "var(--text-sub)";
+                badge.style.borderColor = "var(--border)";
+            }
+
+            camOverlay.innerHTML = state.passenger_in_seat ? "🟢 Seated" : "🔴 Empty";
+        });
+    }, 100);
+</script>
+</body>
+</html>

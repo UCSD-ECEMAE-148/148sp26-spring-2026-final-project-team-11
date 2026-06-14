@@ -165,10 +165,58 @@ we utilize the slam toolbox for mapping and Foxglove Studio to visualize the SLA
 To start the SLAM
 First pull the docker image and download the Foxgolve Studio
 ```bash
-      docker pull wuweowo/robocar:latest
+docker pull wuweowo/robocar:latest
 
 ```
-launch the corresponding slam_launch file under 
+launch the corresponding file under
+```bash
+# for sick lidar
+docker exec -it robocar_team11_joy bash
+export ROS_DOMAIN_ID=11
+source /opt/ros/foxy/setup.bash
+source /home/projects/ros2_ws/install/setup.bash
+ros2 launch ucsd_robocar_nav2_pkg all_components.launch.py
+
+# for mapping and localization
+docker exec -it robocar_team11_joy bash
+export ROS_DOMAIN_ID=11
+source /opt/ros/foxy/setup.bash
+source /home/projects/ros2_ws/install/setup.bash
+ros2 launch ucsd_robocar_nav2_pkg slam_launch.launch.py
+
+# for joystick control
+docker exec -it robocar_team11_joy bash
+export ROS_DOMAIN_ID=11
+source /opt/ros/foxy/setup.bash
+source /home/projects/ros2_ws/install/setup.bash
+ros2 launch ucsd_robocar_control2_pkg manual_joy_control_launch.launch.py
+
+# save map
+ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: '/home/projects/ros2_ws/src/ucsd_robocar_hub2/ucsd_robocar_nav2_pkg/ros_data/maps/my_map2'}}"
+
+ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGraph "{filename: 
+  '/home/projects/ros2_ws/src/ucsd_robocar_hub2/ucsd_robocar_nav2_pkg/ros_data/maps/my_map2.posegraph'}"
+
+# slam parameters
+/home/projects/ros2_ws/install/ucsd_robocar_nav2_pkg/share/ucsd_robocar_nav2_pkg/config/slam_params_online_async.yaml
+
+# lidar parameters
+/home/projects/ros2_ws/install/ucsd_robocar_sensor2_pkg/share/ucsd_robocar_sensor2_pkg/config/sick_tim_5xx.yaml
+
+# open port to host to establish rosbridge connection with foxglove
+ssh -L 9090:127.0.0.1:9090 -N pi@ucsdrobocar-148-11.local
+
+# change mode from mapping to localization 
+nano /home/projects/ros2_ws/install/ucsd_robocar_nav2_pkg/share/ucsd_robocar_nav2_pkg/config/slam_params_online_async.yaml
+
+'''
+  mode: mapping -> mode: localization，
+  add：
+  map_file_name: /home/projects/ros2_ws/src/ucsd_robocar_hub2/ucsd_robocar_nav2_pkg/ros_data/maps/my_map
+  map_start_at_dock: true
+'''
+
+``` 
 
 home/donkey
 
