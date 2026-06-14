@@ -163,7 +163,7 @@ We used the LD06 Lidar to implement obstacle avoidance within ROS2. The program 
 we utilize the slam toolbox for mapping and Foxglove Studio to visualize the SLAM process
 
 To start the SLAM
-First pull the docker image and download the Foxgolve Studio
+First pull the docker image and download the Foxgolve Studio from https://foxglove.dev/download
 ```bash
 docker pull wuweowo/robocar:latest
 
